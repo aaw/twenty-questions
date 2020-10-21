@@ -149,12 +149,91 @@ s.add(x5 == Or(And(x5a,x14b),
 #    (A) A  (B) B  (C) C  (D) D  (E) none of the above
 s.add(x6 == True)
 
-
-
+# 7. The answer that appears most often (possibly tied) is:
+#    (A) A  (B) B  (C) C  (D) D  (E) E
 def ToInt(x):
     return If(x,1,0)
+def answer_sum(ans):
+    return reduce(lambda x,y : x+y,
+                  map(lambda i: ToInt(answers[i][ans]), range(1,21)))
+s.add(x7 == Or(And(x7a,
+                   answer_sum('A') >= answer_sum('B'),
+                   answer_sum('A') >= answer_sum('C'),
+                   answer_sum('A') >= answer_sum('D'),
+                   answer_sum('A') >= answer_sum('E')),
+               And(x7b,
+                   answer_sum('B') >= answer_sum('A'),
+                   answer_sum('B') >= answer_sum('C'),
+                   answer_sum('B') >= answer_sum('D'),
+                   answer_sum('B') >= answer_sum('E')),
+               And(x7c,
+                   answer_sum('C') >= answer_sum('A'),
+                   answer_sum('C') >= answer_sum('B'),
+                   answer_sum('C') >= answer_sum('D'),
+                   answer_sum('C') >= answer_sum('E')),
+               And(x7d,
+                   answer_sum('D') >= answer_sum('A'),
+                   answer_sum('D') >= answer_sum('B'),
+                   answer_sum('D') >= answer_sum('C'),
+                   answer_sum('D') >= answer_sum('E')),
+               And(x7e,
+                   answer_sum('E') >= answer_sum('A'),
+                   answer_sum('E') >= answer_sum('B'),
+                   answer_sum('E') >= answer_sum('C'),
+                   answer_sum('E') >= answer_sum('D'))))
 
-def get_answer(m, i):
+# 8. Ignoring those that occur equally often, the answer that appears least
+#    often is:
+#    (A) A  (B) B  (C) C  (D) D  (E) E
+s.add(x8 == Or(And(x8a,
+                   answer_sum('A') <= answer_sum('B'),
+                   answer_sum('A') <= answer_sum('C'),
+                   answer_sum('A') <= answer_sum('D'),
+                   answer_sum('A') <= answer_sum('E')),
+               And(x8b,
+                   answer_sum('B') <= answer_sum('A'),
+                   answer_sum('B') <= answer_sum('C'),
+                   answer_sum('B') <= answer_sum('D'),
+                   answer_sum('B') <= answer_sum('E')),
+               And(x8c,
+                   answer_sum('C') <= answer_sum('A'),
+                   answer_sum('C') <= answer_sum('B'),
+                   answer_sum('C') <= answer_sum('D'),
+                   answer_sum('C') <= answer_sum('E')),
+               And(x8d,
+                   answer_sum('D') <= answer_sum('A'),
+                   answer_sum('D') <= answer_sum('B'),
+                   answer_sum('D') <= answer_sum('C'),
+                   answer_sum('D') <= answer_sum('E')),
+               And(x8e,
+                   answer_sum('E') <= answer_sum('A'),
+                   answer_sum('E') <= answer_sum('B'),
+                   answer_sum('E') <= answer_sum('C'),
+                   answer_sum('E') <= answer_sum('D'))))
+
+# 9. The sum of all question numbers whose answers are correct and the same as
+#    this one is in the range:
+#    (A) 59 to 62, inclusive
+#    (B) 52 to 55, inclusive
+#    (C) 44 to 49, inclusive
+#    (D) 61 to 67, inclusive
+#    (E) 44 to 53, inclusive
+s.add(x9 == Or(And(x9a, answer_sum('A') >= 59, answer_sum('A') <= 62),
+               And(x9b, answer_sum('B') >= 52, answer_sum('B') <= 55),
+               And(x9c, answer_sum('C') >= 44, answer_sum('C') <= 49),
+               And(x9d, answer_sum('D') >= 61, answer_sum('D') <= 67),
+               And(x9e, answer_sum('E') >= 44, answer_sum('E') <= 53)))
+
+# 10. The answer to question 17 is:
+#     (A) D  (B) B  (C) A  (D) E  (E) wrong
+s.add(x10 == Or(And(x10a, x17d),
+                And(x10b, x17b),
+                And(x10c, x17a),
+                And(x10d, x17e),
+                And(x10e, Not(x17))))
+
+
+def answer_in_model(m, i):
     if m[answers[i]['A']]: return 'A'
     if m[answers[i]['B']]: return 'B'
     if m[answers[i]['C']]: return 'C'
@@ -165,4 +244,4 @@ def get_answer(m, i):
 print s.check()
 m = s.model()
 for i in range(1,21):
-    print '%s: %s' % (i,get_answer(m,i))
+    print '%s: %s' % (i,answer_in_model(m,i))
