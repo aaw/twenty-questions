@@ -236,6 +236,56 @@ s.add(x10 == Or(And(x10a, x17d),
                 And(x10d, x17e),
                 And(x10e, Not(x17))))
 
+# 11. The number of questions whose answer is D is:
+#     (A) 2  (B) 3  (C) 4  (D) 5  (E) 6
+s.add(x11 == Or(And(x11a, answer_sum('D') == 2),
+                And(x11b, answer_sum('D') == 3),
+                And(x11c, answer_sum('D') == 4),
+                And(x11d, answer_sum('D') == 5),
+                And(x11e, answer_sum('E') == 6)))
+
+# 12. The number of OTHER questions with the same answer as this
+#     one is the same as the number of questions with answer:
+#     (A) B  (B) C  (C) D  (D) E  (E) none of the above
+s.add(x12 == Or(And(x12a, answer_sum('A') - 1 == answer_sum('B')),
+                And(x12b, answer_sum('B') - 1 == answer_sum('C')),
+                And(x12c, answer_sum('C') - 1 == answer_sum('D')),
+                And(x12d, answer_sum('D') - 1 == answer_sum('E')),
+                And(x12e,
+                    answer_sum('A') - 1 != answer_sum('B'),
+                    answer_sum('B') - 1 != answer_sum('C'),
+                    answer_sum('C') - 1 != answer_sum('D'),
+                    answer_sum('D') - 1 != answer_sum('E'))))
+
+# 13. The number of questions whose answer is E is:
+#     (A) 5  (B) 4  (C) 3  (D) 2  (E) 1
+s.add(x13 == Or(And(x13a, answer_sum('E') == 5),
+                And(x13b, answer_sum('E') == 4),
+                And(x13c, answer_sum('E') == 3),
+                And(x13d, answer_sum('E') == 2),
+                And(x13e, answer_sum('E') == 1)))
+
+# 14. There is no answer that appears exactly:
+#     (A) two times
+#     (B) three times
+#     (C) four times
+#     (D) five times
+#     (E) none of the above
+def no_answer_sum(x):
+    return And(answer_sum('A') != x,
+               answer_sum('B') != x,
+               answer_sum('C') != x,
+               answer_sum('D') != x,
+               answer_sum('E') != x)
+s.add(x14 == Or(And(x14a, no_answer_sum(2)),
+                And(x14b, no_answer_sum(3)),
+                And(x14c, no_answer_sum(4)),
+                And(x14d, no_answer_sum(5)),
+                And(x14e,
+                    Not(no_answer_sum(2)),
+                    Not(no_answer_sum(3)),
+                    Not(no_answer_sum(4)),
+                    Not(no_answer_sum(5)))))
 
 def answer_in_model(m, i):
     if m[answers[i]['A']]: return 'A'
