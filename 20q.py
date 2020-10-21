@@ -211,6 +211,7 @@ s.add(x8 == Or(And(x8a,
                    answer_sum('E') <= answer_sum('C'),
                    answer_sum('E') <= answer_sum('D'))))
 
+# TODO: kind of unclear whether I include or exclude 9 here in each sum...
 # 9. The sum of all question numbers whose answers are correct and the same as
 #    this one is in the range:
 #    (A) 59 to 62, inclusive
@@ -218,11 +219,14 @@ s.add(x8 == Or(And(x8a,
 #    (C) 44 to 49, inclusive
 #    (D) 61 to 67, inclusive
 #    (E) 44 to 53, inclusive
-s.add(x9 == Or(And(x9a, answer_sum('A') >= 59, answer_sum('A') <= 62),
-               And(x9b, answer_sum('B') >= 52, answer_sum('B') <= 55),
-               And(x9c, answer_sum('C') >= 44, answer_sum('C') <= 49),
-               And(x9d, answer_sum('D') >= 61, answer_sum('D') <= 67),
-               And(x9e, answer_sum('E') >= 44, answer_sum('E') <= 53)))
+def qnum_sum(ans):
+    return reduce(lambda x,y : x+y,
+                  map(lambda i: If(answers[i][ans], i, 0), range(1,21)))
+s.add(x9 == Or(And(x9a, qnum_sum('A') >= 59, qnum_sum('A') <= 62),
+               And(x9b, qnum_sum('B') >= 52, qnum_sum('B') <= 55),
+               And(x9c, qnum_sum('C') >= 44, qnum_sum('C') <= 49),
+               And(x9d, qnum_sum('D') >= 61, qnum_sum('D') <= 67),
+               And(x9e, qnum_sum('E') >= 44, qnum_sum('E') <= 53)))
 
 # 10. The answer to question 17 is:
 #     (A) D  (B) B  (C) A  (D) E  (E) wrong
