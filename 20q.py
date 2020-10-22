@@ -1,4 +1,5 @@
 from z3 import *
+set_option(html_mode=False)
 
 # x1, x2, x3, ... represent whether the given question has been answered
 # correctly. x1 == 'question 1 is correct'.
@@ -185,33 +186,20 @@ s.add(x7 == Or(And(x7a,
 # 8. Ignoring those that occur equally often, the answer that appears least
 #    often is:
 #    (A) A  (B) B  (C) C  (D) D  (E) E
-s.add(x8 == Or(And(x8a,
-                   answer_sum('A') <= answer_sum('B'),
-                   answer_sum('A') <= answer_sum('C'),
-                   answer_sum('A') <= answer_sum('D'),
-                   answer_sum('A') <= answer_sum('E')),
-               And(x8b,
-                   answer_sum('B') <= answer_sum('A'),
-                   answer_sum('B') <= answer_sum('C'),
-                   answer_sum('B') <= answer_sum('D'),
-                   answer_sum('B') <= answer_sum('E')),
-               And(x8c,
-                   answer_sum('C') <= answer_sum('A'),
-                   answer_sum('C') <= answer_sum('B'),
-                   answer_sum('C') <= answer_sum('D'),
-                   answer_sum('C') <= answer_sum('E')),
-               And(x8d,
-                   answer_sum('D') <= answer_sum('A'),
-                   answer_sum('D') <= answer_sum('B'),
-                   answer_sum('D') <= answer_sum('C'),
-                   answer_sum('D') <= answer_sum('E')),
-               And(x8e,
-                   answer_sum('E') <= answer_sum('A'),
-                   answer_sum('E') <= answer_sum('B'),
-                   answer_sum('E') <= answer_sum('C'),
-                   answer_sum('E') <= answer_sum('D'))))
+def least_of_distinct(ans):
+    others = set(['A','B','C','D','E']) - set([ans])
+    clauses = [answer_sum(ans) != answer_sum(x) for x in others]
+    for x in others:
+        remains = others - set([x])
+        clauses.append(Or(answer_sum(ans) < answer_sum(x),
+                          *[answer_sum(x) == answer_sum(y) for y in remains]))
+    return reduce(lambda x,y: And(x,y), clauses)
+s.add(x8 == Or(And(x8a, least_of_distinct('A')),
+               And(x8b, least_of_distinct('B')),
+               And(x8c, least_of_distinct('C')),
+               And(x8d, least_of_distinct('D')),
+               And(x8e, least_of_distinct('E'))))
 
-# TODO: kind of unclear whether I include or exclude 9 here in each sum...
 # 9. The sum of all question numbers whose answers are correct and the same as
 #    this one is in the range:
 #    (A) 59 to 62, inclusive
@@ -220,8 +208,10 @@ s.add(x8 == Or(And(x8a,
 #    (D) 61 to 67, inclusive
 #    (E) 44 to 53, inclusive
 def qnum_sum(ans):
-    return reduce(lambda x,y : x+y,
-                  map(lambda i: If(answers[i][ans], i, 0), range(1,21)))
+    # This is tricky... don't want to include x9 in definition of itself
+    return 9 + reduce(lambda x,y : x+y,
+                      map(lambda i: If(And(correct[i],answers[i][ans]), i, 0),
+                          [j for j in range(1,21) if j != 9]))
 s.add(x9 == Or(And(x9a, qnum_sum('A') >= 59, qnum_sum('A') <= 62),
                And(x9b, qnum_sum('B') >= 52, qnum_sum('B') <= 55),
                And(x9c, qnum_sum('C') >= 44, qnum_sum('C') <= 49),
@@ -242,7 +232,7 @@ s.add(x11 == Or(And(x11a, answer_sum('D') == 2),
                 And(x11b, answer_sum('D') == 3),
                 And(x11c, answer_sum('D') == 4),
                 And(x11d, answer_sum('D') == 5),
-                And(x11e, answer_sum('E') == 6)))
+                And(x11e, answer_sum('D') == 6)))
 
 # 12. The number of OTHER questions with the same answer as this
 #     one is the same as the number of questions with answer:
@@ -295,6 +285,16 @@ s.add(x15 == Or(And(x15a, Not(x2c), Not(x4c), Not(x6c), x8c),
                 And(x15d, x2c),
                 And(x15e, Not(x2c), Not(x4c), Not(x6c), Not(x8c))))
 
+# 15 alt. The set of odd-numbered questions with answer A is:
+#     (A) {7}  (B) {9}  (C) not {11}  (D) {13}  (E) {15}
+# def odd_with_answer_a(probs):
+#     return And(*[(answers[i]['A'] == (i in probs)) for i in range(1,21) if i % 2 == 1])
+# s.add(x15 == Or(And(x15a, odd_with_answer_a([7])),
+#                 And(x15b, odd_with_answer_a([9])),
+#                 And(x15c, Not(odd_with_answer_a([11]))),
+#                 And(x15d, odd_with_answer_a([13])),
+#                 And(x15e, odd_with_answer_a([15]))))
+
 # 16. The answer to question 8 is the same as the answer to question:
 #     (A) 3  (B) 2  (C) 13  (D) 18  (E) 20
 def same_as_8(x):
@@ -342,8 +342,7 @@ s.add(x18 == Or(And(x18a, is_prime(prime_vowel_answer_sum())),
 #     (A) 14  (B) 15  (C) 16  (D) 17  (E) 18
 s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
                     Not(x19b), Not(x20b)),
-                And(x19b, x15b, Not(x16b), Not(x17b), Not(x18b), Not(x19b),
-                    Not(x20b)),
+                # Ha! (B) is a trick, can't happen b/c it would be last B.
                 And(x19c, x16b, Not(x17b), Not(x18b), Not(x19b), Not(x20b)),
                 And(x19d, x17b, Not(x18b), Not(x19b), Not(x20b)),
                 And(x19e, x18b, Not(x19b), Not(x20b))))
@@ -351,7 +350,12 @@ s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
 # 20. The maximum score that can be achieved on this test is:
 #     (A) 18  (B) 19  (C) 20  (D) indeterminate
 #     (E) achievable only by getting this question wrong
-s.add(x20 == And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 19))
+
+# Note: (A) is never correct since there's an assignment that achieves 19.
+#       (D) is just weird and can't be correct.
+s.add(x20 == Or(And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 19),
+                And(x20c, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 20)))
+
 
 # Try to maximize number of correct answers
 s.add(reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) >= 19)
@@ -364,8 +368,18 @@ def answer_in_model(m, i):
     if m[answers[i]['E']]: return 'E'
     raise Exception('No answer for %s!' % i)
 
+def answer_string(m,i):
+    ans = answer_in_model(m,i)
+    if m[correct[i]]:
+        return ans.upper()
+    else:
+        return ans.lower()
+
 def print_solution(m):
-    print ', '.join(['%s: %s' % (i,answer_in_model(m,i)) for i in range(1,21)])
+    print ', '.join(['%s: %s' % (i,answer_string(m,i)) for i in range(1,21)])
+
+def print_solution_no_nums(m):
+    print ', '.join(['%s' % answer_string(m,i) for i in range(1,21)])
 
 def block_solution(s, m):
     ans = [v for vv in [answers[i].values() for i in range(1,21)] for v in vv]
@@ -373,5 +387,5 @@ def block_solution(s, m):
 
 while s.check() == sat:
     m = s.model()
-    print_solution(m)
+    print_solution_no_nums(m)
     block_solution(s,m)
