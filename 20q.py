@@ -287,6 +287,75 @@ s.add(x14 == Or(And(x14a, no_answer_sum(2)),
                     Not(no_answer_sum(4)),
                     Not(no_answer_sum(5)))))
 
+# 15. The first even-numbered question whose answer is C is:
+#     (A) 8  (B) 6  (C) 4  (D) 2  (E) none of the above
+s.add(x15 == Or(And(x15a, Not(x2c), Not(x4c), Not(x6c), x8c),
+                And(x15b, Not(x2c), Not(x4c), x6c),
+                And(x15c, Not(x2c), x4c),
+                And(x15d, x2c),
+                And(x15e, Not(x2c), Not(x4c), Not(x6c), Not(x8c))))
+
+# 16. The answer to question 8 is the same as the answer to question:
+#     (A) 3  (B) 2  (C) 13  (D) 18  (E) 20
+def same_as_8(x):
+    return Or(And(x8a,answers[x]['A']),
+              And(x8b,answers[x]['B']),
+              And(x8c,answers[x]['C']),
+              And(x8d,answers[x]['D']),
+              And(x8e,answers[x]['E']))
+s.add(x16 == Or(And(x16a, same_as_8(3)),
+                And(x16b, same_as_8(2)),
+                And(x16c, same_as_8(13)),
+                And(x16d, same_as_8(18)),
+                And(x16e, same_as_8(20))))
+
+# 17. The answer to question 10 is:
+#     (A) C  (B) D  (C) B  (D) A  (E) correct
+s.add(x17 == Or(And(x17a, x10c),
+                And(x17b, x10d),
+                And(x17c, x10b),
+                And(x17d, x10a),
+                And(x17e, x10)))
+
+# 18. The number of prime-numbered questions whose answers are vowels is:
+#     (A) prime  (B) square  (C) odd  (D) even  (E) zero
+def prime_vowel_answer_sum():
+    return ToInt(x2a) + ToInt(x2e) + ToInt(x3a) + ToInt(x3e) + \
+        ToInt(x5a) + ToInt(x5e) + ToInt(x7a) + ToInt(x7e) + \
+        ToInt(x11a) + ToInt(x11e) + ToInt(x13a) + ToInt(x13e) + \
+        ToInt(x17a) + ToInt(x17e) + ToInt(x19a) + ToInt(x19e)
+def is_prime(x):
+    return Or(x==2,x==3,x==5,x==7,x==11,x==13,x==17,x==19)
+def is_square(x):
+    return Or(x==1,x==4,x==9,x==16)
+def is_odd(x):
+    return Or(x==1,x==3,x==5,x==7,x==9,x==11,x==13,x==15,x==17,x==19)
+def is_even(x):
+    return Or(x==2,x==4,x==6,x==8,x==10,x==12,x==14,x==16,x==18,x==20)
+s.add(x18 == Or(And(x18a, is_prime(prime_vowel_answer_sum())),
+                And(x18b, is_square(prime_vowel_answer_sum())),
+                And(x18c, is_odd(prime_vowel_answer_sum())),
+                And(x18d, is_even(prime_vowel_answer_sum())),
+                And(x18e, prime_vowel_answer_sum() == 0)))
+
+# 19. The last question whose answer is B is:
+#     (A) 14  (B) 15  (C) 16  (D) 17  (E) 18
+s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
+                    Not(x19b), Not(x20b)),
+                And(x19b, x15b, Not(x16b), Not(x17b), Not(x18b), Not(x19b),
+                    Not(x20b)),
+                And(x19c, x16b, Not(x17b), Not(x18b), Not(x19b), Not(x20b)),
+                And(x19d, x17b, Not(x18b), Not(x19b), Not(x20b)),
+                And(x19e, x18b, Not(x19b), Not(x20b))))
+
+# 20. The maximum score that can be achieved on this test is:
+#     (A) 18  (B) 19  (C) 20  (D) indeterminate
+#     (E) achievable only by getting this question wrong
+s.add(x20 == And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 19))
+
+# Try to maximize number of correct answers
+s.add(reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) >= 19)
+
 def answer_in_model(m, i):
     if m[answers[i]['A']]: return 'A'
     if m[answers[i]['B']]: return 'B'
@@ -295,7 +364,14 @@ def answer_in_model(m, i):
     if m[answers[i]['E']]: return 'E'
     raise Exception('No answer for %s!' % i)
 
-print s.check()
-m = s.model()
-for i in range(1,21):
-    print '%s: %s' % (i,answer_in_model(m,i))
+def print_solution(m):
+    print ', '.join(['%s: %s' % (i,answer_in_model(m,i)) for i in range(1,21)])
+
+def block_solution(s, m):
+    ans = [v for vv in [answers[i].values() for i in range(1,21)] for v in vv]
+    s.add(Not(And(*[v == m[v] for v in ans])))
+
+while s.check() == sat:
+    m = s.model()
+    print_solution(m)
+    block_solution(s,m)
