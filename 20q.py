@@ -98,7 +98,7 @@ s.add(x1 == Or(x1a,
                And(x1b,x2a,Not(x1a)),
                And(x1c,x3a,Not(x1a),Not(x2a)),
                And(x1d,x4a,Not(x1a),Not(x2a),Not(x3a)),
-               And(x1e,x5e,Not(x1a),Not(x2a),Not(x3a),Not(x4a))))
+               And(x1e,x5a,Not(x1a),Not(x2a),Not(x3a),Not(x4a))))
 
 # (2) The next question with the same answer as this one is:
 #     (A) 4  (B) 6  (C) 8  (D) 10  (E) 12
@@ -242,10 +242,9 @@ s.add(x12 == Or(And(x12a, answer_sum('A') - 1 == answer_sum('B')),
                 And(x12c, answer_sum('C') - 1 == answer_sum('D')),
                 And(x12d, answer_sum('D') - 1 == answer_sum('E')),
                 And(x12e,
-                    answer_sum('A') - 1 != answer_sum('B'),
-                    answer_sum('B') - 1 != answer_sum('C'),
-                    answer_sum('C') - 1 != answer_sum('D'),
-                    answer_sum('D') - 1 != answer_sum('E'))))
+                    answer_sum('E') - 1 != answer_sum('B'),
+                    answer_sum('E') - 1 != answer_sum('C'),
+                    answer_sum('E') - 1 != answer_sum('D'))))
 
 # 13. The number of questions whose answer is E is:
 #     (A) 5  (B) 4  (C) 3  (D) 2  (E) 1
@@ -284,16 +283,6 @@ s.add(x15 == Or(And(x15a, Not(x2c), Not(x4c), Not(x6c), x8c),
                 And(x15c, Not(x2c), x4c),
                 And(x15d, x2c),
                 And(x15e, Not(x2c), Not(x4c), Not(x6c), Not(x8c))))
-
-# 15 alt. The set of odd-numbered questions with answer A is:
-#     (A) {7}  (B) {9}  (C) not {11}  (D) {13}  (E) {15}
-# def odd_with_answer_a(probs):
-#     return And(*[(answers[i]['A'] == (i in probs)) for i in range(1,21) if i % 2 == 1])
-# s.add(x15 == Or(And(x15a, odd_with_answer_a([7])),
-#                 And(x15b, odd_with_answer_a([9])),
-#                 And(x15c, Not(odd_with_answer_a([11]))),
-#                 And(x15d, odd_with_answer_a([13])),
-#                 And(x15e, odd_with_answer_a([15]))))
 
 # 16. The answer to question 8 is the same as the answer to question:
 #     (A) 3  (B) 2  (C) 13  (D) 18  (E) 20
@@ -351,8 +340,6 @@ s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
 #     (A) 18  (B) 19  (C) 20  (D) indeterminate
 #     (E) achievable only by getting this question wrong
 
-# Note: (A) is never correct since there's an assignment that achieves 19.
-#       (D) is just weird and can't be correct.
 s.add(x20 == Or(And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 19),
                 And(x20c, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 20)))
 
@@ -376,16 +363,14 @@ def answer_string(m,i):
         return ans.lower()
 
 def print_solution(m):
-    print ', '.join(['%s: %s' % (i,answer_string(m,i)) for i in range(1,21)])
-
-def print_solution_no_nums(m):
-    print ', '.join(['%s' % answer_string(m,i) for i in range(1,21)])
+    print ' '.join(['%s' % answer_string(m,i) for i in range(1,21)])
 
 def block_solution(s, m):
     ans = [v for vv in [answers[i].values() for i in range(1,21)] for v in vv]
-    s.add(Not(And(*[v == m[v] for v in ans])))
+    s.add(Not(And(And(*[v == m[v] for v in ans]),
+                  And(*[v == m[v] for v in correct[1:]]))))
 
 while s.check() == sat:
     m = s.model()
-    print_solution_no_nums(m)
+    print_solution(m)
     block_solution(s,m)

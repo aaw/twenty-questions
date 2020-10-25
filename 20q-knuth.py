@@ -98,7 +98,7 @@ s.add(x1 == Or(x1a,
                And(x1b,x2a,Not(x1a)),
                And(x1c,x3a,Not(x1a),Not(x2a)),
                And(x1d,x4a,Not(x1a),Not(x2a),Not(x3a)),
-               And(x1e,x5e,Not(x1a),Not(x2a),Not(x3a),Not(x4a))))
+               And(x1e,x5a,Not(x1a),Not(x2a),Not(x3a),Not(x4a))))
 
 # (2) The next question with the same answer as this one is:
 #     (A) 4  (B) 6  (C) 8  (D) 10  (E) 12
@@ -206,17 +206,18 @@ s.add(x8 == Or(And(x8a, least_of_distinct('A')),
 #    (B) 52 to 55, inclusive
 #    (C) 44 to 49, inclusive
 #    (D) 61 to 67, inclusive
-#    (E) 44 to 53, inclusive
+#    (E) 39 to 43, inclusive
 def qnum_sum(ans):
-    # This is tricky... don't want to include x9 in definition of itself
     return 9 + reduce(lambda x,y : x+y,
-                      map(lambda i: If(And(correct[i],answers[i][ans]), i, 0),
+                  map(lambda i: If(And(correct[i],answers[i][ans]), i, 0),
                           [j for j in range(1,21) if j != 9]))
 s.add(x9 == Or(And(x9a, qnum_sum('A') >= 59, qnum_sum('A') <= 62),
                And(x9b, qnum_sum('B') >= 52, qnum_sum('B') <= 55),
                And(x9c, qnum_sum('C') >= 44, qnum_sum('C') <= 49),
+               #And(x9d, qnum_sum('D') >= 59, qnum_sum('D') <= 67),
                And(x9d, qnum_sum('D') >= 61, qnum_sum('D') <= 67),
                And(x9e, qnum_sum('E') >= 44, qnum_sum('E') <= 53)))
+               #And(x9e, qnum_sum('E') >= 39, qnum_sum('E') <= 43)))
 
 # 10. The answer to question 17 is:
 #     (A) D  (B) B  (C) A  (D) E  (E) wrong
@@ -242,10 +243,9 @@ s.add(x12 == Or(And(x12a, answer_sum('A') - 1 == answer_sum('B')),
                 And(x12c, answer_sum('C') - 1 == answer_sum('D')),
                 And(x12d, answer_sum('D') - 1 == answer_sum('E')),
                 And(x12e,
-                    answer_sum('A') - 1 != answer_sum('B'),
-                    answer_sum('B') - 1 != answer_sum('C'),
-                    answer_sum('C') - 1 != answer_sum('D'),
-                    answer_sum('D') - 1 != answer_sum('E'))))
+                    answer_sum('E') - 1 != answer_sum('B'),
+                    answer_sum('E') - 1 != answer_sum('C'),
+                    answer_sum('E') - 1 != answer_sum('D'))))
 
 # 13. The number of questions whose answer is E is:
 #     (A) 5  (B) 4  (C) 3  (D) 2  (E) 1
@@ -278,11 +278,12 @@ s.add(x14 == Or(And(x14a, no_answer_sum(2)),
                     Not(no_answer_sum(5)))))
 
 # 15. The set of odd-numbered questions with answer A is:
-#     (A) {7}  (B) {9}  (C) not {11}  (D) {13}  (E) {15}
+#     (A) {7}  (B) {9}  (C) {11}  (D) {13}  (E) {15}
 def odd_with_answer_a(probs):
     return And(*[(answers[i]['A'] == (i in probs)) for i in range(1,21) if i % 2 == 1])
 s.add(x15 == Or(And(x15a, odd_with_answer_a([7])),
                 And(x15b, odd_with_answer_a([9])),
+                #And(x15c, odd_with_answer_a([11])),
                 And(x15c, Not(odd_with_answer_a([11]))),
                 And(x15d, odd_with_answer_a([13])),
                 And(x15e, odd_with_answer_a([15]))))
@@ -345,9 +346,16 @@ s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
 
 # Note: (A) is never correct since there's an assignment that achieves 19.
 #       (D) is just weird and can't be correct.
-s.add(x20 == Or(And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 19),
-                And(x20c, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 20)))
+#s.add(x20 == Or(And(x20a, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,20)]) == 17),
+#                And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,20)]) == 18),
+#                And(x20c, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,20)]) == 19)))
 
+s.add(x20 == x20b)
+
+#s.add(And(x1a, x2e, x3d, x4c, x5a,
+#          x6b, x7c, x8d, x9c, x10a,
+#          x11c, x12e, x13d, x14b, x15c,
+#          x16a, x17d, x18a, x19a, x20c))
 
 # Try to maximize number of correct answers
 s.add(reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) >= 19)
@@ -371,13 +379,17 @@ def print_solution(m):
     print ', '.join(['%s: %s' % (i,answer_string(m,i)) for i in range(1,21)])
 
 def print_solution_no_nums(m):
-    print ', '.join(['%s' % answer_string(m,i) for i in range(1,21)])
+    print ''.join(['%s' % answer_string(m,i) for i in range(1,21)])
 
 def block_solution(s, m):
     ans = [v for vv in [answers[i].values() for i in range(1,21)] for v in vv]
-    s.add(Not(And(*[v == m[v] for v in ans])))
+    s.add(Not(And(And(*[v == m[v] for v in ans]),
+                  And(*[v == m[v] for v in correct[1:]]))))
 
+sols = 0
 while s.check() == sat:
+    sols += 1
     m = s.model()
     print_solution_no_nums(m)
     block_solution(s,m)
+print 'Number of solutions: %s' % sols
