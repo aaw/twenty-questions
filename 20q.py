@@ -339,13 +339,11 @@ s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
 # 20. The maximum score that can be achieved on this test is:
 #     (A) 18  (B) 19  (C) 20  (D) indeterminate
 #     (E) achievable only by getting this question wrong
-
-s.add(x20 == Or(And(x20b, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 19),
-                And(x20c, reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) == 20)))
+s.add(x20 == x20b)
 
 
 # Try to maximize number of correct answers
-s.add(reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) >= 19)
+s.add(reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) >= 18)
 
 def answer_in_model(m, i):
     if m[answers[i]['A']]: return 'A'
