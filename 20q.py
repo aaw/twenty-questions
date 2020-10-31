@@ -1,5 +1,4 @@
 from z3 import *
-set_option(html_mode=False)
 
 # x1, x2, x3, ... represent whether the given question has been answered
 # correctly. x1 == 'question 1 is correct'.
@@ -92,7 +91,11 @@ ExactlyOneTrue(s, x18a, x18b, x18c, x18d, x18e)
 ExactlyOneTrue(s, x19a, x19b, x19c, x19d, x19e)
 ExactlyOneTrue(s, x20a, x20b, x20c, x20d, x20e)
 
-# (1) The first question whose answer is A is:
+def SumOf(xs): return reduce(lambda x,y: x+y, xs)
+def AndOf(xs): return reduce(lambda x,y: And(x,y), xs)
+def OrOf(xs): return reduce(lambda x,y: Or(x,y), xs)
+
+# 1. The first question whose answer is A is:
 #     (A) 1  (B) 2  (C) 3  (D) 4  (E) 5
 s.add(x1 == Or(x1a,
                And(x1b,x2a,Not(x1a)),
@@ -120,15 +123,15 @@ def same_answer(i,j):
               And(answers[i]['E'],answers[j]['E']))
 s.add(x3 == Or(
     And(x3a, same_answer(15, 16),
-        *[Not(same_answer(i,i+1)) for i in range(1,20) if i != 15]),
+        AndOf(Not(same_answer(i,i+1)) for i in range(1,20) if i != 15)),
     And(x3b, same_answer(16, 17),
-        *[Not(same_answer(i,i+1)) for i in range(1,20) if i != 16]),
+        AndOf(Not(same_answer(i,i+1)) for i in range(1,20) if i != 16)),
     And(x3c, same_answer(17, 18),
-        *[Not(same_answer(i,i+1)) for i in range(1,20) if i != 17]),
+        AndOf(Not(same_answer(i,i+1)) for i in range(1,20) if i != 17)),
     And(x3d, same_answer(18, 19),
-        *[Not(same_answer(i,i+1)) for i in range(1,20) if i != 18]),
+        AndOf(Not(same_answer(i,i+1)) for i in range(1,20) if i != 18)),
     And(x3e, same_answer(19, 20),
-        *[Not(same_answer(i,i+1)) for i in range(1,20) if i != 19])))
+        AndOf(Not(same_answer(i,i+1)) for i in range(1,20) if i != 19))))
 
 # 4. The answer to this question is the same as the answers to questions:
 #    (A) 10 and 13  (B) 14 and 16  (C) 7 and 20  (D) 1 and 15  (E) 8 and 12
@@ -152,48 +155,31 @@ s.add(x6 == True)
 
 # 7. The answer that appears most often (possibly tied) is:
 #    (A) A  (B) B  (C) C  (D) D  (E) E
-def ToInt(x):
-    return If(x,1,0)
-def answer_sum(ans):
-    return reduce(lambda x,y : x+y,
-                  map(lambda i: ToInt(answers[i][ans]), range(1,21)))
-s.add(x7 == Or(And(x7a,
-                   answer_sum('A') >= answer_sum('B'),
-                   answer_sum('A') >= answer_sum('C'),
-                   answer_sum('A') >= answer_sum('D'),
-                   answer_sum('A') >= answer_sum('E')),
-               And(x7b,
-                   answer_sum('B') >= answer_sum('A'),
-                   answer_sum('B') >= answer_sum('C'),
-                   answer_sum('B') >= answer_sum('D'),
-                   answer_sum('B') >= answer_sum('E')),
-               And(x7c,
-                   answer_sum('C') >= answer_sum('A'),
-                   answer_sum('C') >= answer_sum('B'),
-                   answer_sum('C') >= answer_sum('D'),
-                   answer_sum('C') >= answer_sum('E')),
-               And(x7d,
-                   answer_sum('D') >= answer_sum('A'),
-                   answer_sum('D') >= answer_sum('B'),
-                   answer_sum('D') >= answer_sum('C'),
-                   answer_sum('D') >= answer_sum('E')),
-               And(x7e,
-                   answer_sum('E') >= answer_sum('A'),
-                   answer_sum('E') >= answer_sum('B'),
-                   answer_sum('E') >= answer_sum('C'),
-                   answer_sum('E') >= answer_sum('D'))))
+qs = range(1,21)  # Question numbers, 1-20.
+def btoi(x): return If(x,1,0)  # Convert bool to int
+def answer_tally(z): return SumOf(btoi(answers[i][z]) for i in qs)
+def other_answers(ans):
+    return set(['A','B','C','D','E']) - set([ans])
+def appears_most_often(z):
+    others = other_answers(z)
+    return AndOf(answer_tally(z) >= answer_tally(i) for i in others)
+s.add(x7 == Or(And(x7a, appears_most_often('A')),
+               And(x7b, appears_most_often('B')),
+               And(x7c, appears_most_often('C')),
+               And(x7d, appears_most_often('D')),
+               And(x7e, appears_most_often('E'))))
 
 # 8. Ignoring those that occur equally often, the answer that appears least
 #    often is:
 #    (A) A  (B) B  (C) C  (D) D  (E) E
 def least_of_distinct(ans):
-    others = set(['A','B','C','D','E']) - set([ans])
-    clauses = [answer_sum(ans) != answer_sum(x) for x in others]
+    others = other_answers(ans)
+    clauses = [answer_tally(ans) != answer_tally(x) for x in others]
     for x in others:
         remains = others - set([x])
-        clauses.append(Or(answer_sum(ans) < answer_sum(x),
-                          *[answer_sum(x) == answer_sum(y) for y in remains]))
-    return reduce(lambda x,y: And(x,y), clauses)
+        clauses.append(Or(answer_tally(ans) < answer_tally(x),
+                          OrOf(answer_tally(x) == answer_tally(y) for y in remains)))
+    return AndOf(clauses)
 s.add(x8 == Or(And(x8a, least_of_distinct('A')),
                And(x8b, least_of_distinct('B')),
                And(x8c, least_of_distinct('C')),
@@ -207,16 +193,14 @@ s.add(x8 == Or(And(x8a, least_of_distinct('A')),
 #    (C) 44 to 49, inclusive
 #    (D) 61 to 67, inclusive
 #    (E) 44 to 53, inclusive
-def qnum_sum(ans):
-    # This is tricky... don't want to include x9 in definition of itself
-    return 9 + reduce(lambda x,y : x+y,
-                      map(lambda i: If(And(correct[i],answers[i][ans]), i, 0),
-                          [j for j in range(1,21) if j != 9]))
-s.add(x9 == Or(And(x9a, qnum_sum('A') >= 59, qnum_sum('A') <= 62),
-               And(x9b, qnum_sum('B') >= 52, qnum_sum('B') <= 55),
-               And(x9c, qnum_sum('C') >= 44, qnum_sum('C') <= 49),
-               And(x9d, qnum_sum('D') >= 61, qnum_sum('D') <= 67),
-               And(x9e, qnum_sum('E') >= 44, qnum_sum('E') <= 53)))
+def answer_sum(ans):
+    not_9 = [j for j in range(1,21) if j != 9]
+    return 9 + SumOf(If(And(correct[i],answers[i][ans]), i, 0) for i in not_9)
+s.add(x9 == Or(And(x9a, answer_sum('A') >= 59, answer_sum('A') <= 62),
+               And(x9b, answer_sum('B') >= 52, answer_sum('B') <= 55),
+               And(x9c, answer_sum('C') >= 44, answer_sum('C') <= 49),
+               And(x9d, answer_sum('D') >= 61, answer_sum('D') <= 67),
+               And(x9e, answer_sum('E') >= 44, answer_sum('E') <= 53)))
 
 # 10. The answer to question 17 is:
 #     (A) D  (B) B  (C) A  (D) E  (E) wrong
@@ -228,31 +212,31 @@ s.add(x10 == Or(And(x10a, x17d),
 
 # 11. The number of questions whose answer is D is:
 #     (A) 2  (B) 3  (C) 4  (D) 5  (E) 6
-s.add(x11 == Or(And(x11a, answer_sum('D') == 2),
-                And(x11b, answer_sum('D') == 3),
-                And(x11c, answer_sum('D') == 4),
-                And(x11d, answer_sum('D') == 5),
-                And(x11e, answer_sum('D') == 6)))
+s.add(x11 == Or(And(x11a, answer_tally('D') == 2),
+                And(x11b, answer_tally('D') == 3),
+                And(x11c, answer_tally('D') == 4),
+                And(x11d, answer_tally('D') == 5),
+                And(x11e, answer_tally('D') == 6)))
 
 # 12. The number of OTHER questions with the same answer as this
 #     one is the same as the number of questions with answer:
 #     (A) B  (B) C  (C) D  (D) E  (E) none of the above
-s.add(x12 == Or(And(x12a, answer_sum('A') - 1 == answer_sum('B')),
-                And(x12b, answer_sum('B') - 1 == answer_sum('C')),
-                And(x12c, answer_sum('C') - 1 == answer_sum('D')),
-                And(x12d, answer_sum('D') - 1 == answer_sum('E')),
+s.add(x12 == Or(And(x12a, answer_tally('A') - 1 == answer_tally('B')),
+                And(x12b, answer_tally('B') - 1 == answer_tally('C')),
+                And(x12c, answer_tally('C') - 1 == answer_tally('D')),
+                And(x12d, answer_tally('D') - 1 == answer_tally('E')),
                 And(x12e,
-                    answer_sum('E') - 1 != answer_sum('B'),
-                    answer_sum('E') - 1 != answer_sum('C'),
-                    answer_sum('E') - 1 != answer_sum('D'))))
+                    answer_tally('E') - 1 != answer_tally('B'),
+                    answer_tally('E') - 1 != answer_tally('C'),
+                    answer_tally('E') - 1 != answer_tally('D'))))
 
 # 13. The number of questions whose answer is E is:
 #     (A) 5  (B) 4  (C) 3  (D) 2  (E) 1
-s.add(x13 == Or(And(x13a, answer_sum('E') == 5),
-                And(x13b, answer_sum('E') == 4),
-                And(x13c, answer_sum('E') == 3),
-                And(x13d, answer_sum('E') == 2),
-                And(x13e, answer_sum('E') == 1)))
+s.add(x13 == Or(And(x13a, answer_tally('E') == 5),
+                And(x13b, answer_tally('E') == 4),
+                And(x13c, answer_tally('E') == 3),
+                And(x13d, answer_tally('E') == 2),
+                And(x13e, answer_tally('E') == 1)))
 
 # 14. There is no answer that appears exactly:
 #     (A) two times
@@ -260,21 +244,21 @@ s.add(x13 == Or(And(x13a, answer_sum('E') == 5),
 #     (C) four times
 #     (D) five times
 #     (E) none of the above
-def no_answer_sum(x):
-    return And(answer_sum('A') != x,
-               answer_sum('B') != x,
-               answer_sum('C') != x,
-               answer_sum('D') != x,
-               answer_sum('E') != x)
-s.add(x14 == Or(And(x14a, no_answer_sum(2)),
-                And(x14b, no_answer_sum(3)),
-                And(x14c, no_answer_sum(4)),
-                And(x14d, no_answer_sum(5)),
+def no_answer_tally(x):
+    return And(answer_tally('A') != x,
+               answer_tally('B') != x,
+               answer_tally('C') != x,
+               answer_tally('D') != x,
+               answer_tally('E') != x)
+s.add(x14 == Or(And(x14a, no_answer_tally(2)),
+                And(x14b, no_answer_tally(3)),
+                And(x14c, no_answer_tally(4)),
+                And(x14d, no_answer_tally(5)),
                 And(x14e,
-                    Not(no_answer_sum(2)),
-                    Not(no_answer_sum(3)),
-                    Not(no_answer_sum(4)),
-                    Not(no_answer_sum(5)))))
+                    Not(no_answer_tally(2)),
+                    Not(no_answer_tally(3)),
+                    Not(no_answer_tally(4)),
+                    Not(no_answer_tally(5)))))
 
 # 15. The first even-numbered question whose answer is C is:
 #     (A) 8  (B) 6  (C) 4  (D) 2  (E) none of the above
@@ -308,24 +292,22 @@ s.add(x17 == Or(And(x17a, x10c),
 
 # 18. The number of prime-numbered questions whose answers are vowels is:
 #     (A) prime  (B) square  (C) odd  (D) even  (E) zero
-def prime_vowel_answer_sum():
-    return ToInt(x2a) + ToInt(x2e) + ToInt(x3a) + ToInt(x3e) + \
-        ToInt(x5a) + ToInt(x5e) + ToInt(x7a) + ToInt(x7e) + \
-        ToInt(x11a) + ToInt(x11e) + ToInt(x13a) + ToInt(x13e) + \
-        ToInt(x17a) + ToInt(x17e) + ToInt(x19a) + ToInt(x19e)
+def prime_vowel_answer_tally():
+    return btoi(x2a) + btoi(x2e) + btoi(x3a) + btoi(x3e) + \
+        btoi(x5a) + btoi(x5e) + btoi(x7a) + btoi(x7e) + \
+        btoi(x11a) + btoi(x11e) + btoi(x13a) + btoi(x13e) + \
+        btoi(x17a) + btoi(x17e) + btoi(x19a) + btoi(x19e)
+def is_odd(x): return x % 2 == 1
+def is_even(x): return x % 2 == 0
 def is_prime(x):
     return Or(x==2,x==3,x==5,x==7,x==11,x==13,x==17,x==19)
 def is_square(x):
     return Or(x==1,x==4,x==9,x==16)
-def is_odd(x):
-    return Or(x==1,x==3,x==5,x==7,x==9,x==11,x==13,x==15,x==17,x==19)
-def is_even(x):
-    return Or(x==2,x==4,x==6,x==8,x==10,x==12,x==14,x==16,x==18,x==20)
-s.add(x18 == Or(And(x18a, is_prime(prime_vowel_answer_sum())),
-                And(x18b, is_square(prime_vowel_answer_sum())),
-                And(x18c, is_odd(prime_vowel_answer_sum())),
-                And(x18d, is_even(prime_vowel_answer_sum())),
-                And(x18e, prime_vowel_answer_sum() == 0)))
+s.add(x18 == Or(And(x18a, is_prime(prime_vowel_answer_tally())),
+                And(x18b, is_square(prime_vowel_answer_tally())),
+                And(x18c, is_odd(prime_vowel_answer_tally())),
+                And(x18d, is_even(prime_vowel_answer_tally())),
+                And(x18e, prime_vowel_answer_tally() == 0)))
 
 # 19. The last question whose answer is B is:
 #     (A) 14  (B) 15  (C) 16  (D) 17  (E) 18
@@ -341,9 +323,8 @@ s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
 #     (E) achievable only by getting this question wrong
 s.add(x20 == x20b)
 
-
 # Try to maximize number of correct answers
-s.add(reduce(lambda x,y: x+y, [ToInt(correct[i]) for i in range(1,21)]) >= 18)
+s.add(SumOf(btoi(correct[i]) for i in range(1,21)) >= 19)
 
 def answer_in_model(m, i):
     if m[answers[i]['A']]: return 'A'
@@ -361,12 +342,12 @@ def answer_string(m,i):
         return ans.lower()
 
 def print_solution(m):
-    print ' '.join(['%s' % answer_string(m,i) for i in range(1,21)])
+    print(' '.join(['%s' % answer_string(m,i) for i in range(1,21)]))
 
 def block_solution(s, m):
     ans = [v for vv in [answers[i].values() for i in range(1,21)] for v in vv]
-    s.add(Not(And(And(*[v == m[v] for v in ans]),
-                  And(*[v == m[v] for v in correct[1:]]))))
+    s.add(Not(And(AndOf(v == m[v] for v in ans),
+                  AndOf(v == m[v] for v in correct[1:]))))
 
 while s.check() == sat:
     m = s.model()
