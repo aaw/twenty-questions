@@ -194,8 +194,8 @@ s.add(x8 == Or(And(x8a, least_of_distinct('A')),
 #    (D) 61 to 67, inclusive
 #    (E) 44 to 53, inclusive
 def answer_sum(ans):
-    not_9 = [j for j in range(1,21) if j != 9]
-    return 9 + SumOf(If(And(correct[i],answers[i][ans]), i, 0) for i in not_9)
+    return SumOf(If(And(correct[i],answers[i][ans]), i, 0) for i in range(1,21))
+
 s.add(x9 == Or(And(x9a, answer_sum('A') >= 59, answer_sum('A') <= 62),
                And(x9b, answer_sum('B') >= 52, answer_sum('B') <= 55),
                And(x9c, answer_sum('C') >= 44, answer_sum('C') <= 49),
@@ -323,23 +323,17 @@ s.add(x19 == Or(And(x19a, x14b, Not(x15b), Not(x16b), Not(x17b), Not(x18b),
 #     (E) achievable only by getting this question wrong
 s.add(x20 == x20b)
 
-# Try to maximize number of correct answers
+# Maximize number of correct answers.
 s.add(SumOf(btoi(correct[i]) for i in range(1,21)) >= 19)
 
 def answer_in_model(m, i):
-    if m[answers[i]['A']]: return 'A'
-    if m[answers[i]['B']]: return 'B'
-    if m[answers[i]['C']]: return 'C'
-    if m[answers[i]['D']]: return 'D'
-    if m[answers[i]['E']]: return 'E'
-    raise Exception('No answer for %s!' % i)
+    for ans in ['A','B','C','D','E']:
+        if m[answers[i][ans]]: return ans
+    raise Exception('No answer for question %s' % i)
 
 def answer_string(m,i):
     ans = answer_in_model(m,i)
-    if m[correct[i]]:
-        return ans.upper()
-    else:
-        return ans.lower()
+    return ans.upper() if m[correct[i]] else ans.lower()
 
 def print_solution(m):
     print(' '.join(['%s' % answer_string(m,i) for i in range(1,21)]))
