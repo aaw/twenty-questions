@@ -98,10 +98,10 @@ def OrOf(xs): return reduce(lambda x,y: Or(x,y), xs)
 # 1. The first question whose answer is A is:
 #     (A) 1  (B) 2  (C) 3  (D) 4  (E) 5
 s.add(x1 == Or(x1a,
-               And(x1b,x2a,Not(x1a)),
-               And(x1c,x3a,Not(x1a),Not(x2a)),
-               And(x1d,x4a,Not(x1a),Not(x2a),Not(x3a)),
-               And(x1e,x5a,Not(x1a),Not(x2a),Not(x3a),Not(x4a))))
+               And(x1b,x2a),
+               And(x1c,x3a,Not(x2a)),
+               And(x1d,x4a,Not(x2a),Not(x3a)),
+               And(x1e,x5a,Not(x2a),Not(x3a),Not(x4a))))
 
 # (2) The next question with the same answer as this one is:
 #     (A) 4  (B) 6  (C) 8  (D) 10  (E) 12
